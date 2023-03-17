@@ -100,11 +100,13 @@ export default class Rect extends Shape{
         })
         this.ctx.restore()
     }
-    isPointInRect(pos) {
+    isPointInPath(pos) {
         let {x: sx, y: sy} = this.points[0]
         let {x: ex, y: ey} = this.points[1]
         if (sx < pos.x && sy < pos.y && sx + ex - sx > pos.x && sy + ey - sy > pos.y) {
-            return this
+            return true
+        } else {
+            return false
         }
     }
 }

@@ -1,5 +1,6 @@
 import Event from './event/event.js'
 import Rect from './Shape/Rect.js'
+import Polygon from './Shape/Polygon.js'
 import matrix from './utils/matrix.js'
 /**
  * init Canvas
@@ -9,6 +10,7 @@ import matrix from './utils/matrix.js'
 class Canvas extends Event {
     rightMouseDown = false
     rightMouseMove = false
+    dbclickTime = 0
     constructor({
         el,
         width,
@@ -21,7 +23,7 @@ class Canvas extends Event {
         this.width = width || window.innerWidth
         this.height = height || window.innerHeight
         this.canvasDOM = null
-        this.createType = ''
+        this.selectTool = ''
         this.offsetX = 0
         this.offsetY = 0
         this.img = new Image()
@@ -72,6 +74,9 @@ class Canvas extends Event {
                 matrix.reset()
                 this.ctx.setTransform(matrix.clone())
                 this.update()
+            }
+            if (e.key === 'v') {
+                this.selectTool = 'select'
             }
         })
         document.addEventListener('contextmenu', (e) => {e.preventDefault()})
@@ -141,36 +146,64 @@ class Canvas extends Event {
     handleMouseDown(e) {
         e.preventDefault()
         this.mouse.mousedownPos = this.mouseEventPosition(e)
-        console.log(this.mouse.mousedownPos)
+        if (this.dbclickTime && (Date.now() - this.dbclickTime < 150)) { // 用户判断用户双击结束绘制
+            if (this.activeShape && ['polygon', 'line'].includes(this.activeShape.type)) {
+                this.activeShape.creating = false
+                this.activeShape.editing = true
+                this.update()
+                return
+            }
+        } else {
+            this.dbclickTime = Date.now()
+        }
         if (e.button === 2) {
-            console.log('right click')
             this.rightMouseDown = true
             return
         }
+        if (this.selectTool === 'select') {
+            let activeShapeList = this.shapeList.filter(item => {
+                item.activating = false
+                item.editing = false
+                return item.isPointInPath(this.mouse.mousedownPos)
+            })
+            activeShapeList.forEach(item => {
+                item.activating = true
+                item.editing = true
+            })
+            this.update()
+            // console.log(activeShapeList)
+            return
+        }
         if (this.activeShape?.creating) {
-            switch(this.createType) {
+            switch(this.selectTool) {
                 case 'rect':
                     this.activeShape.creating = false
                     this.activeShape.editing = true
                     break
-                }
+                case 'polygon':
+                    this.activeShape.points.splice(this.activeShape.points.length - 1, 1, this.mouse.mousedownPos, this.mouse.mousedownPos)
+                    break
+            }
+
             this.update()
             return
         }
-        if (this.createType) {
+        if (this.selectTool) {
             this.activeShape && (this.activeShape.editing = false)
-            switch(this.createType) {
+            switch(this.selectTool) {
                 case 'rect':
                     this.activeShape = new Rect(this.ctx, {
                         lineColor: '#00f'
                     })
-                    this.activeShape.creating = true
-                    this.activeShape.activating = true
                     break
                 case 'polygon':
-                    this.activeShape = new Polygon(this.ctx, {})
+                    this.activeShape = new Polygon(this.ctx, {
+                        lineColor: '#f00'
+                    })
                     break
             }
+            this.activeShape.creating = true
+            this.activeShape.activating = true
             this.addShape(this.activeShape)
         }
     }
@@ -184,11 +217,14 @@ class Canvas extends Event {
             this.update()
         }
         if (this.activeShape?.creating) {
-            switch(this.createType) {
+            switch(this.selectTool) {
                 case 'rect':
                     this.activeShape.initPoints(this.mouse.mousedownPos, this.mouse.mousemovePos)
                     break
-                }
+                case 'polygon':
+                    this.activeShape.initPoints(this.mouse.mousedownPos, this.mouse.mousemovePos)
+                    break
+            }
             this.update()
         }
     }
