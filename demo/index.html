@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>canvas标注组件</title>
+    <style>
+        body{
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body>
+    <div style="position: absolute; z-index: 2;">
+        <button class="rect">矩形</button>
+        <button class="polygon">多边形</button>
+        <button class="fitIn">自动适配</button>
+    </div>
+    <canvas id="c"></canvas>
+    <script type="module">
+        import Canvas from '../index.js'
+        const rect = document.querySelector('.rect')
+        const polygon = document.querySelector('.polygon')
+        const fitIn = document.querySelector('.fitIn')
+        const c = new Canvas({
+            el: '#c',
+            width: 1500,
+            height: 700,
+            imgUrl: 'https://img0.baidu.com/it/u=421861480,616907023&fm=253&fmt=auto&app=138&f=JPEG?w=752&h=500'
+        })
+        rect.onclick = () => {
+            c.createType = 'rect'
+        }
+        polygon.onclick = () => {
+            c.createType = 'polygon'
+        }
+        fitIn.onclick = () => {
+            c.fitInWindow()
+        }
+        c.on('created', () => {
+            c.setData([
+                {
+                    type: 'rect',
+                    points: [{
+                        x: 200,
+                        y: 200
+                    }, {
+                        x: 400,
+                        y: 400
+                    }],
+                    lineColor: '#00f'
+                },
+                {
+                    type: 'rect',
+                    points: [{
+                        x: 500,
+                        y: 500
+                    }, {
+                        x: 800,
+                        y: 800
+                    }],
+                    lineColor: '#0f0'
+                }
+            ])
+        })
+    </script>
+</body>
+</html>
