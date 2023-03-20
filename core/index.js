@@ -1,6 +1,8 @@
 import Event from './event/event.js'
 import Rect from './Shape/Rect.js'
 import Polygon from './Shape/Polygon.js'
+import Line from './Shape/Line.js'
+import Cube from './Shape/Cube.js'
 import matrix from './utils/matrix.js'
 /**
  * init Canvas
@@ -33,6 +35,8 @@ class Canvas extends Event {
         this.minScale = 0.6
         this.maxScale = 40
         this.baseScaleStep = .5
+        this.index = 0
+        this.activeIndex = -1
         this.mouse = {
             mousedownPos: {
                 x: 0,
@@ -98,7 +102,8 @@ class Canvas extends Event {
     update() {
         this.clear()
         this.ctx.drawImage(this.img, 0, 0, this.width, this.imgHeight)
-        this.shapeList.forEach(item => {
+        this.shapeList.forEach((item, index) => {
+            item.index = index
             item.drawGraph()
         })
     }
@@ -110,7 +115,7 @@ class Canvas extends Event {
     }
     getCurrentActiveShape() {
         // 获取当前激活的图形
-        let activating = this.shapeList.filter(item => item.active)
+        let activating = this.shapeList.filter(item => item.activating)
         return activating.length ? activating[0] : null
     }
     mouseEventPosition(e) {
@@ -145,9 +150,8 @@ class Canvas extends Event {
     }
     handleMouseDown(e) {
         e.preventDefault()
-        this.mouse.mousedownPos = this.mouseEventPosition(e)
-        if (this.dbclickTime && (Date.now() - this.dbclickTime < 150)) { // 用户判断用户双击结束绘制
-            if (this.activeShape && ['polygon', 'line'].includes(this.activeShape.type)) {
+        if (this.dbclickTime && (Date.now() - this.dbclickTime < 300)) { // 用户判断用户双击结束绘制
+            if (this.activeShape && ['polygon', 'line'].includes(this.activeShape.type) && JSON.stringify(this.mouseEventPosition(e)) === JSON.stringify(this.mouse.mousedownPos)) {
                 this.activeShape.creating = false
                 this.activeShape.editing = true
                 this.update()
@@ -156,22 +160,25 @@ class Canvas extends Event {
         } else {
             this.dbclickTime = Date.now()
         }
+        this.mouse.mousedownPos = this.mouseEventPosition(e)
         if (e.button === 2) {
             this.rightMouseDown = true
             return
         }
         if (this.selectTool === 'select') {
-            let activeShapeList = this.shapeList.filter(item => {
-                item.activating = false
-                item.editing = false
-                return item.isPointInPath(this.mouse.mousedownPos)
-            })
-            activeShapeList.forEach(item => {
-                item.activating = true
-                item.editing = true
-            })
+            if (this.activeShape) {
+                this.activeShape.activating = false
+                this.activeShape.editing = false
+                this.activeShape = null
+            }
+            if (!~this.activeIndex) {
+                this.update()
+                return
+            }
+            this.activeShape = this.shapeList[this.activeIndex]
+            this.activeShape.activating = true
+            this.activeShape.editing = true
             this.update()
-            // console.log(activeShapeList)
             return
         }
         if (this.activeShape?.creating) {
@@ -180,28 +187,27 @@ class Canvas extends Event {
                     this.activeShape.creating = false
                     this.activeShape.editing = true
                     break
+                case 'line':
                 case 'polygon':
                     this.activeShape.points.splice(this.activeShape.points.length - 1, 1, this.mouse.mousedownPos, this.mouse.mousedownPos)
                     break
-            }
+                case 'cube':
+                    if (this.activeShape.points.length === 3) {
+                        this.activeShape.creating = false
+                        this.activeShape.activating = true
+                        this.activeShape.editing = true
+                        break
+                    }
+                    this.activeShape.points.splice(this.activeShape.points.length - 1, 1, this.mouse.mousedownPos, this.mouse.mousedownPos)
+                    break
+                }
 
             this.update()
             return
         }
         if (this.selectTool) {
             this.activeShape && (this.activeShape.editing = false)
-            switch(this.selectTool) {
-                case 'rect':
-                    this.activeShape = new Rect(this.ctx, {
-                        lineColor: '#00f'
-                    })
-                    break
-                case 'polygon':
-                    this.activeShape = new Polygon(this.ctx, {
-                        lineColor: '#f00'
-                    })
-                    break
-            }
+            this.activeShape = this.createShape(this.selectTool, this.shapeProps || {})
             this.activeShape.creating = true
             this.activeShape.activating = true
             this.addShape(this.activeShape)
@@ -216,32 +222,102 @@ class Canvas extends Event {
             this.ctx.setTransform(matrix.clone())
             this.update()
         }
+        if (this.selectTool === 'select') {
+            this.selectShape()
+        }
         if (this.activeShape?.creating) {
             switch(this.selectTool) {
                 case 'rect':
                     this.activeShape.initPoints(this.mouse.mousedownPos, this.mouse.mousemovePos)
                     break
+                case 'line':
                 case 'polygon':
+                case 'cube':
                     this.activeShape.initPoints(this.mouse.mousedownPos, this.mouse.mousemovePos)
                     break
             }
             this.update()
         }
     }
+    selectShape() {
+        let activeShapeList = this.shapeList.filter(item => {
+            if (!this.activeShape || item.uuid !== this.activeShape.uuid) {
+                item.activating = false
+                item.editing = false
+            }
+            return item.isPointInPath(this.mouse.mousemovePos)
+        })
+        if (!activeShapeList.length) {
+            this.activeIndex = -1
+        }
+        let minArea = 0
+        /**
+         * 会有覆盖关系，如果小面积的图形被大面积的图形覆盖，小面积的图形将无法被选中，此处使用面积比较，来区分选中的图形。
+         */
+        if (activeShapeList.length === 1) {
+            let item = activeShapeList[0]
+            item.activating = true
+            item.editing = true
+            this.activeIndex = item.index
+        } else {
+            for (let i = 0; i < activeShapeList.length; i++) {
+                let item = activeShapeList[i]
+                if (item.type === 'line') {
+                    item.activating = true
+                    item.editing = true
+                    this.activeIndex = item.index
+                    this.update()
+                    return
+                }
+                let itemArea = item.getArea()
+                if (minArea) {
+                    if (itemArea < minArea) {
+                        item.activating = true
+                        item.editing = true
+                        this.activeIndex = item.index
+                        this.update()
+                        return
+                    }
+                } else {
+                    minArea = itemArea
+                    item.activating = true
+                    item.editing = true
+                    this.activeIndex = item.index
+                    this.update()
+                }
+            }
+        }
+        this.update()
+        return
+    }
     handleMouseUp() {
         this.rightMouseDown = false
+    }
+    createShape(tool, shapeProps) {
+        let newShape = null
+        switch(tool) {
+            case 'rect':
+                newShape = new Rect(this.ctx, shapeProps)
+                break
+            case 'polygon':
+                newShape = new Polygon(this.ctx, shapeProps)
+                break
+            case 'line':
+                newShape = new Line(this.ctx, shapeProps)
+                break
+            case 'point':
+                newShape = new Point(this.ctx, shapeProps)
+                break
+            case 'cube':
+                newShape = new Cube(this.ctx, shapeProps)
+                break
+        }
+        return newShape
     }
     setData(data) {
         let newShape = null
         data.forEach(item => {
-            switch(item.type) {
-                case 'rect':
-                    newShape = new Rect(this.ctx, item)
-                    break
-                case 'polygon':
-                    newShape = new Polygon(this.ctx, item)
-                    break
-            }
+            newShape = this.createShape(item.type, item)
             this.shapeList.push(newShape)
         })
         this.update()

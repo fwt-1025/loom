@@ -10,10 +10,13 @@ export default class Shape extends Event{
         lineColor,
         fillColor,
         lineWidth,
-        control
+        control,
+        opacity
     }) {
         super()
         this.ctx = ctx
+        this.index = -1
+        this.opacity = opacity || 0.2
         this.points = points || []
         this.control = control || true
         this.controlPoints = []

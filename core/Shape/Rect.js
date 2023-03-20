@@ -75,6 +75,7 @@ export default class Rect extends Shape{
         this.ctx.beginPath()
         this.ctx.setTransform(1, 0, 0, 1, 0, 0)
         this.ctx.strokeStyle = this.lineColor
+        this.ctx.fillStyle = this.lineColor
         let {x: sx, y: sy} = this.points[0]
         let {x: ex, y: ey} = this.points[1]
         sx = sx * mat.a + mat.e
@@ -84,6 +85,8 @@ export default class Rect extends Shape{
         this.ctx.rect(sx, sy, ex - sx, ey - sy)
         this.ctx.stroke()
         this.ctx.closePath()
+        this.ctx.globalAlpha = this.opacity
+        this.ctx.fill()
         this.ctx.restore()
         this.editing && this.drawControls()
     }
@@ -99,6 +102,11 @@ export default class Rect extends Shape{
             this.ctx.closePath()
         })
         this.ctx.restore()
+    }
+    getArea() {
+        let {x, y} = this.points[0]
+        let { x: x1, y: y1 } = this.points[1]
+        return (x1 - x) * (y1 - y)
     }
     isPointInPath(pos) {
         let {x: sx, y: sy} = this.points[0]

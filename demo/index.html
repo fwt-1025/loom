@@ -17,13 +17,17 @@
     <div style="position: absolute; z-index: 2;">
         <button class="rect">矩形</button>
         <button class="polygon">多边形</button>
+        <button class="line">线</button>
         <button class="fitIn">自动适配</button>
+        <button class="getactiveShape">获取当前激活的图形</button>
     </div>
     <canvas id="c"></canvas>
     <script type="module">
         import Canvas from '../index.js'
         const rect = document.querySelector('.rect')
         const polygon = document.querySelector('.polygon')
+        const line = document.querySelector('.line')
+        const getactiveShape = document.querySelector('.getactiveShape')
         const fitIn = document.querySelector('.fitIn')
         const c = new Canvas({
             el: '#c',
@@ -33,9 +37,24 @@
         })
         rect.onclick = () => {
             c.selectTool = 'rect'
+            c.shapeProps = {
+                lineColor: '#00f'
+            }
         }
         polygon.onclick = () => {
             c.selectTool = 'polygon'
+            c.shapeProps = {
+                lineColor: '#0f0'
+            }
+        }
+        line.onclick = () => {
+            c.selectTool = 'cube'
+            c.shapeProps = {
+                lineColor: '#f00'
+            }
+        }
+        getactiveShape.onclick = () => {
+            console.log(c.getCurrentActiveShape())
         }
         fitIn.onclick = () => {
             c.fitInWindow()

@@ -1,9 +1,9 @@
 import Shape from './Shape.js'
 
-export default class Polygon extends Shape{
+export default class Line extends Shape{
     constructor(ctx, shapeProps) {
         super(ctx, shapeProps)
-        this.type = 'polygon'
+        this.type = 'line'
     }
     getControlPoints() {
         return this.points
@@ -36,8 +36,8 @@ export default class Polygon extends Shape{
                 this.ctx.lineTo(x, y)
             }
         })
-        this.ctx.closePath()
         this.ctx.stroke()
+        this.ctx.closePath()
         this.ctx.restore()
         this.editing && this.drawControls()
     }
@@ -53,18 +53,6 @@ export default class Polygon extends Shape{
             this.ctx.closePath()
         })
         this.ctx.restore()
-    }
-    getArea() {
-        // 通过定义一个点，根据三角形的求面积公式， 两条向量的叉积的膜 / 2, 将多边形分成若干个三角形。
-        // 面积公式 S = 0.5 * | x1*y2 - y1*x2 + x2 * y3 - y2*x3 + ..... + xn*y1 - yn*x1 |
-        let newPoints = this.points.map((item, index) => [item, this.points[(index + 1) % this.points.length]])
-        let S = 0
-        for (let i = 0, len = newPoints.length; i < len; i++) {
-            let item = newPoints[i]
-            S += (item[0].x * item[1].y - item[0].y * item[1].x)
-        }
-        S = Math.abs(S / 2)
-        return S
     }
     isPointInPath(pos) {
         // px，py为p点的x和y坐标
