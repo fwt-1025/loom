@@ -8,7 +8,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/fwt-1025/annotation.git"
+    "url": "git+https://github.com/fwt-1025/canvas-annotation.git"
   },
   "keywords": [
     "annotate",
@@ -19,7 +19,7 @@
   "author": "coder_man",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/fwt-1025/annotation/issues"
+    "url": "https://github.com/fwt-1025/canvas-annotation/issues"
   },
-  "homepage": "https://github.com/fwt-1025/annotation#readme"
+  "homepage": "https://github.com/fwt-1025/canvas-annotation#readme"
 }
