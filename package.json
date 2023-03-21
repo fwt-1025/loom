@@ -1,0 +1,25 @@
+{
+  "name": "canvas-annotation",
+  "version": "1.0.0",
+  "description": "A JavaScript library for annotations",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fwt-1025/annotation.git"
+  },
+  "keywords": [
+    "annotate",
+    "annotation",
+    "canvas",
+    "canvas-annotation"
+  ],
+  "author": "coder_man",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/fwt-1025/annotation/issues"
+  },
+  "homepage": "https://github.com/fwt-1025/annotation#readme"
+}

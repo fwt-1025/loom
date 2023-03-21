@@ -17,6 +17,7 @@ export default class Shape extends Event{
         this.ctx = ctx
         this.index = -1
         this.opacity = opacity || 0.2
+        this.editIndex = -1
         this.points = points || []
         this.control = control || true
         this.controlPoints = []
@@ -27,5 +28,36 @@ export default class Shape extends Event{
         this.editing = false
         this.activating = false
         this.uuid = Math.random()
+    }
+    controlPointsIndex(pos) {
+        let controlPoints = this.getControlPoints()
+        let {x, y} = pos
+        let canvas = this.ctx.canvas
+        let mat = this.ctx.getTransform()
+        for (let i = 0; i < controlPoints.length; i++) {
+            let {x: sx, y: sy} = controlPoints[i]
+            if (x < sx + 5 / mat.a && x > sx - 5 / mat.a && y < sy + 5 / mat.a && y > sy - 5 / mat.a) {
+                canvas.style.cursor = 'pointer'
+                return i
+            } else {
+                canvas.style.cursor = 'auto'
+            }
+        }
+        return -1
+    }
+    drawControls() {
+        let mat = this.ctx.getTransform()
+        this.ctx.save()
+        this.ctx.setTransform(1, 0, 0, 1, 0, 0)
+        this.getControlPoints().forEach(item => {
+            this.ctx.beginPath()
+            this.ctx.strokeStyle = this.lineColor
+            this.ctx.fillStyle = '#fff'
+            this.ctx.arc(item.x * mat.a + mat.e, item.y * mat.a + mat.f, 5, 0, 2 * Math.PI)
+            this.ctx.stroke()
+            this.ctx.fill()
+            this.ctx.closePath()
+        })
+        this.ctx.restore()
     }
 }

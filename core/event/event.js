@@ -15,9 +15,11 @@ export default class Event {
     }
     emit(eventName, ...rest) {
         let fns = this.events[eventName]
-        fns.forEach(item => {
-            item.call(null, ...rest)
-        })
+        if (fns && fns.length) {
+            fns.forEach(item => {
+                item.call(null, ...rest)
+            })
+        }
     }
     off(eventName, listener) {
         let fns = this.events[eventName]

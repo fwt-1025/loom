@@ -18,6 +18,7 @@
         <button class="rect">矩形</button>
         <button class="polygon">多边形</button>
         <button class="line">线</button>
+        <button class="select">选择工具</button>
         <button class="fitIn">自动适配</button>
         <button class="getactiveShape">获取当前激活的图形</button>
     </div>
@@ -27,13 +28,14 @@
         const rect = document.querySelector('.rect')
         const polygon = document.querySelector('.polygon')
         const line = document.querySelector('.line')
+        const select = document.querySelector('.select')
         const getactiveShape = document.querySelector('.getactiveShape')
         const fitIn = document.querySelector('.fitIn')
         const c = new Canvas({
-            el: '#c',
+            el: document.querySelector('#c'),
             width: 1500,
             height: 700,
-            imgUrl: 'https://img0.baidu.com/it/u=421861480,616907023&fm=253&fmt=auto&app=138&f=JPEG?w=752&h=500'
+            imgUrl: 'https://img0.baidu.com/it/u=2384171364,597242015&fm=253&fmt=auto&app=138&f=JPEG?w=945&h=500'
         })
         rect.onclick = () => {
             c.selectTool = 'rect'
@@ -48,10 +50,13 @@
             }
         }
         line.onclick = () => {
-            c.selectTool = 'cube'
+            c.selectTool = 'line'
             c.shapeProps = {
                 lineColor: '#f00'
             }
+        }
+        select.onclick = () => {
+            c.selectTool = 'select'
         }
         getactiveShape.onclick = () => {
             console.log(c.getCurrentActiveShape())
@@ -59,7 +64,26 @@
         fitIn.onclick = () => {
             c.fitInWindow()
         }
+        c.on('hoverShape', info => {
+            // console.log(info)
+            // info.fillColor = '#000'
+        })
         c.on('created', () => {
+            let r = new c.Rect(c.ctx, {
+                // points: [{
+                //     x: 100,
+                //     y: 100
+                // }, {
+                //     x: 300,
+                //     y: 300
+                // }]
+                width: 100,
+                height: 100,
+                left: 100,
+                top: 100,
+                lineColor: '#0f0'
+            })
+            c.addShape(r)
             c.setData([
                 {
                     type: 'rect',
@@ -78,8 +102,8 @@
                         x: 500,
                         y: 500
                     }, {
-                        x: 800,
-                        y: 800
+                        x: 700,
+                        y: 700
                     }],
                     lineColor: '#0f0'
                 }

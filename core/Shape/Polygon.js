@@ -26,6 +26,9 @@ export default class Polygon extends Shape{
         this.ctx.beginPath()
         this.ctx.setTransform(1, 0, 0, 1, 0, 0)
         this.ctx.strokeStyle = this.lineColor
+        this.ctx.fillStyle = this.lineColor
+        console.log(this.lineWidth)
+        this.ctx.lineWidth = this.lineWidth
         this.points.forEach((item, index) => {
             let { x, y } = item
             x = x * mat.a + mat.e
@@ -36,23 +39,14 @@ export default class Polygon extends Shape{
                 this.ctx.lineTo(x, y)
             }
         })
+        this.ctx.save()
+        this.ctx.globalAlpha = this.opacity
+        this.ctx.fill()
+        this.ctx.restore()
         this.ctx.closePath()
         this.ctx.stroke()
         this.ctx.restore()
-        this.editing && this.drawControls()
-    }
-    drawControls() {
-        let mat = this.ctx.getTransform()
-        this.ctx.save()
-        this.ctx.setTransform(1, 0, 0, 1, 0, 0)
-        this.getControlPoints().forEach(item => {
-            this.ctx.beginPath()
-            this.ctx.fillStyle = this.fillColor
-            this.ctx.arc(item.x * mat.a + mat.e, item.y * mat.a + mat.f, 5, 0, 2 * Math.PI)
-            this.ctx.fill()
-            this.ctx.closePath()
-        })
-        this.ctx.restore()
+        this.activating && this.drawControls()
     }
     getArea() {
         // 通过定义一个点，根据三角形的求面积公式， 两条向量的叉积的膜 / 2, 将多边形分成若干个三角形。
@@ -65,6 +59,36 @@ export default class Polygon extends Shape{
         }
         S = Math.abs(S / 2)
         return S
+    }
+    isIntersect(type) {
+        // 这里type的含义是当多边形结束绘制时，要最后判断一次最后一个点与起始点连成的线是否与其他线段有交点，如果有，不允许结束
+        let points = this.points.slice()
+        let poly = points.map((p1, i) => [p1, points[(i + 1) % points.length]])
+        let intersectLine = poly.slice(poly.length - 3, poly.length - 2)
+        let otherLine = poly.slice(-1).concat(poly.slice(0, poly.length - 3))
+        let max = Math.max
+        let min = Math.min
+        let [a, b] = type ? poly.slice(-1)[0] : intersectLine[0]
+        for (let i = 0; i < otherLine.length; i++) {
+            let [c, d] = otherLine[i]
+            if (
+                (max(a.x, b.x) > min(c.x, d.x) && min(a.x, b.x) < max(c.x, d.x)) &&
+                (max(a.y, b.y) > min(c.y, d.y) && min(a.y, b.y) < max(c.y, d.y))
+            ) {
+                if (
+                    ((c.x - a.x) * (b.y - a.y) - (c.y - a.y) * (c.x - a.x)) *
+                    ((d.x - a.x) * (b.y - a.y) - (d.y - a.y) * (b.x - a.x)) < 0 &&
+                    ((a.x - c.x) * (d.y - c.y) - (a.y - c.y) * (d.x - c.x)) *
+                    ((b.x - c.x) * (d.y - c.y) - (b.y - c.y) * (d.x - c.x)) < 0
+                ) {
+                    return true
+                }
+            }
+        }
+        return false
+    }
+    updateGraph(index, pos) {
+        this.points[index] = pos
     }
     isPointInPath(pos) {
         // px，py为p点的x和y坐标

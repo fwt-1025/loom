@@ -25,6 +25,7 @@ export default class Line extends Shape{
         this.ctx.save()
         this.ctx.beginPath()
         this.ctx.setTransform(1, 0, 0, 1, 0, 0)
+        this.ctx.lineWidth = this.lineWidth || 5
         this.ctx.strokeStyle = this.lineColor
         this.points.forEach((item, index) => {
             let { x, y } = item
@@ -39,67 +40,52 @@ export default class Line extends Shape{
         this.ctx.stroke()
         this.ctx.closePath()
         this.ctx.restore()
-        this.editing && this.drawControls()
+        this.activating && this.drawControls()
     }
-    drawControls() {
-        let mat = this.ctx.getTransform()
-        this.ctx.save()
-        this.ctx.setTransform(1, 0, 0, 1, 0, 0)
-        this.getControlPoints().forEach(item => {
-            this.ctx.beginPath()
-            this.ctx.fillStyle = this.fillColor
-            this.ctx.arc(item.x * mat.a + mat.e, item.y * mat.a + mat.f, 5, 0, 2 * Math.PI)
-            this.ctx.fill()
-            this.ctx.closePath()
-        })
-        this.ctx.restore()
-    }
-    isPointInPath(pos) {
-        // px，py为p点的x和y坐标
-        let p = pos
+    isIntersect(type) {
+        // 这里type的含义是当多边形结束绘制时，要最后判断一次最后一个点与起始点连成的线是否与其他线段有交点，如果有，不允许结束
         let points = this.points.slice()
         let poly = points.map((p1, i) => [p1, points[(i + 1) % points.length]])
-        let px = p.x,
-            py = p.y,
-            flag = false
-        //这个for循环是为了遍历多边形的每一个线段
-        for (let i = 0, l = poly.length; i < l; i++) {
-            let sx = poly[i][0].x,  //线段起点x坐标
-                sy = poly[i][0].y,  //线段起点y坐标
-                tx = poly[i][1].x,  //线段终点x坐标
-                ty = poly[i][1].y   //线段终点y坐标
-            // 点与多边形顶点重合
-            if ((sx === px && sy === py) || (tx === px && ty === py)) {
-                return true
-            }
-
-            // 点的射线和多边形的一条边重合，并且点在边上
-            if ((sy === ty && sy === py) && ((sx > px && tx < px) || (sx < px && tx > px))) {
-                return true
-            }
-
-            // 判断线段两端点是否在射线两侧
-            if ((sy < py && ty >= py) || (sy >= py && ty < py)) {
-                // 求射线和线段的交点x坐标，交点y坐标当然是py
-                let x = sx + (py - sy) * (tx - sx) / (ty - sy)
-
-                // 点在多边形的边上
-                if (x === px) {
+        let intersectLine = poly.slice(poly.length - 3, poly.length - 2)
+        let otherLine = poly.slice(-1).concat(poly.slice(0, poly.length - 3))
+        let max = Math.max
+        let min = Math.min
+        let [a, b] = type ? poly.slice(-1)[0] : intersectLine[0]
+        for (let i = 0; i < otherLine.length; i++) {
+            let [c, d] = otherLine[i]
+            if (
+                (max(a.x, b.x) > min(c.x, d.x) && min(a.x, b.x) < max(c.x, d.x)) &&
+                (max(a.y, b.y) > min(c.y, d.y) && min(a.y, b.y) < max(c.y, d.y))
+            ) {
+                if (
+                    ((c.x - a.x) * (b.y - a.y) - (c.y - a.y) * (c.x - a.x)) *
+                    ((d.x - a.x) * (b.y - a.y) - (d.y - a.y) * (b.x - a.x)) < 0 &&
+                    ((a.x - c.x) * (d.y - c.y) - (a.y - c.y) * (d.x - c.x)) *
+                    ((b.x - c.x) * (d.y - c.y) - (b.y - c.y) * (d.x - c.x)) < 0
+                ) {
                     return true
-                }
-
-                // x大于px来保证射线是朝右的，往一个方向射，假如射线穿过多边形的边界，flag取反一下
-                if (x > px) {
-                    flag = !flag
                 }
             }
         }
-
-        // 射线穿过多边形边界的次数为奇数时点在多边形内
-        if (flag) {
-            return true
-        } else {
-            return false
+        return false
+    }
+    updateGraph(index, pos) {
+        this.points[index] = pos
+    }
+    isPointInPath(pos) {
+        // 三角形两边之和大于第三边
+        let mat = this.ctx.getTransform()
+        let newPoints = this.points.map((p1, i) => [p1, this.points[(i + 1) % this.points.length]]).slice(0, this.points.length - 1)
+        for (let i = 0, len = newPoints.length; i < len; i++) {
+            let p1 = newPoints[i][0]
+            let p2 = newPoints[i][1]
+            let l1 = Math.sqrt((Math.pow(pos.x - p1.x, 2) + Math.pow(pos.y - p1.y, 2)));
+            let l2 = Math.sqrt((Math.pow(pos.x - p2.x, 2) + Math.pow(pos.y - p2.y, 2)))
+            let l3 = Math.sqrt((Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2)))
+            if (l2 + l1 - l3 < 0.02 / mat.a) {
+                // this.canvasmouse.el.style.cursor = 'pointer'
+                return this
+            }
         }
     }
 }

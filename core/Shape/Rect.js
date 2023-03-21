@@ -4,6 +4,10 @@ export default class Rect extends Shape{
     constructor(ctx, shapeProps) {
         super(ctx, shapeProps)
         this.type = 'rect'
+        this.width = shapeProps.width || 0
+        this.height = shapeProps.height || 0
+        this.left = shapeProps.left || 0
+        this.top = shapeProps.top || 0
     }
     getControlPoints() {
         let [p0, p1] = this.points
@@ -70,12 +74,20 @@ export default class Rect extends Shape{
         }
     }
     drawGraph() {
+        let {width, height, left, top} = this
+        if (!(0 in this.points) && width && height && left && top) {
+            this.points = [
+                {x: left, y: top},
+                {x: left + width, y: top + height}
+            ]
+        }
         let mat = this.ctx.getTransform()
         this.ctx.save()
         this.ctx.beginPath()
         this.ctx.setTransform(1, 0, 0, 1, 0, 0)
         this.ctx.strokeStyle = this.lineColor
         this.ctx.fillStyle = this.lineColor
+        this.ctx.lineWidth = this.lineWidth
         let {x: sx, y: sy} = this.points[0]
         let {x: ex, y: ey} = this.points[1]
         sx = sx * mat.a + mat.e
@@ -88,20 +100,7 @@ export default class Rect extends Shape{
         this.ctx.globalAlpha = this.opacity
         this.ctx.fill()
         this.ctx.restore()
-        this.editing && this.drawControls()
-    }
-    drawControls() {
-        let mat = this.ctx.getTransform()
-        this.ctx.save()
-        this.ctx.setTransform(1, 0, 0, 1, 0, 0)
-        this.getControlPoints().forEach(item => {
-            this.ctx.beginPath()
-            this.ctx.fillStyle = this.fillColor
-            this.ctx.arc(item.x * mat.a + mat.e, item.y * mat.a + mat.f, 5, 0, 2 * Math.PI)
-            this.ctx.fill()
-            this.ctx.closePath()
-        })
-        this.ctx.restore()
+        this.activating && this.drawControls()
     }
     getArea() {
         let {x, y} = this.points[0]
@@ -117,4 +116,55 @@ export default class Rect extends Shape{
             return false
         }
     }
+    updateGraph(index, pos) {
+        let {x, y} = pos
+        switch(index) {
+            case 0:
+                this.points[0] = pos
+                break
+            case 1:
+                this.points[0].y = y
+                break
+            case 2:
+                this.points[0].y = y
+                this.points[1].x = x
+                break
+            case 3:
+                this.points[1].x = x
+                break
+            case 4:
+                this.points[1] = pos
+                break
+            case 5:
+                this.points[1].y = y
+                break
+            case 6:
+                this.points[0].x = x
+                this.points[1].y = y
+                break
+            case 7:
+                this.points[0].x = x
+                break
+        }
+    }
+    // controlPointsIndex(pos) {
+    //     let controlPoints = this.getControlPoints()
+    //     let {x, y} = pos
+    //     let canvas = this.ctx.canvas
+    //     let mat = this.ctx.getTransform()
+    //     for (let i = 0; i < controlPoints.length; i++) {
+    //         let {x: sx, y: sy} = controlPoints[i]
+    //         if (x < sx + 5 / mat.a && x > sx - 5 / mat.a && y < sy + 5 / mat.a && y > sy - 5 / mat.a) {
+    //             // switch (i) {
+    //             //     case 0:
+    //             //         canvas.el.style.cursor = ''
+    //             // }
+    //             canvas.style.cursor = 'pointer'
+    //             return i
+    //         } else {
+    //             canvas.style.cursor = 'auto'
+    //         }
+    //     }
+    //     return -1
+    // }
 }

@@ -3,7 +3,21 @@ import Rect from './Shape/Rect.js'
 import Polygon from './Shape/Polygon.js'
 import Line from './Shape/Line.js'
 import Cube from './Shape/Cube.js'
+import Point from './Shape/Point.js'
 import matrix from './utils/matrix.js'
+import { warn, error } from './utils/index.js'
+/**
+ * 定义事件
+ * selectedShape  选中图形触发的事件，回调参数 shape
+ * hoverShape     鼠标移动选中图形触发的事件， 回调参数 shape
+ * 
+ * 
+ * 定义抛出的事件
+ * deleteByIndex  通过下标删除对应的图形
+ * setData        设置画布中的图形数据
+ * update         用于修改图形属性后，画布重新绘制
+ * getCurrentActiveShape 获取当前选中的图形
+ */
 /**
  * init Canvas
  */
@@ -37,6 +51,7 @@ class Canvas extends Event {
         this.baseScaleStep = .5
         this.index = 0
         this.activeIndex = -1
+        this.pixelSize = {}
         this.mouse = {
             mousedownPos: {
                 x: 0,
@@ -58,12 +73,29 @@ class Canvas extends Event {
         this.img.setAttribute("crossOrigin", "anonymous");
         this.img.onload = () => {
             this.pixelRatio = this.img.naturalWidth / this.img.naturalHeight
+            this.pixelSize = {
+                w: this.img.naturalWidth,
+                h: this.img.naturalHeight
+            }
             this.imgHeight = this.width / this.pixelRatio // 根据宽度自适应图像
             this.init()
         }
+        this.Rect = Rect
+        this.Polygon = Polygon
+        this.Line = Line
+        this.Point = Point
+        this.Cube = Cube
     }
     init() {
-        this.canvasDOM = document.querySelector(this.el)
+        if (!this.el) {
+            error('You should provide an \'el\' attribute and it needs to be set to \'string | HTMLCanvasElement\'')
+            return
+        }
+        if (this.el instanceof HTMLCanvasElement) {
+            this.canvasDOM = this.el
+        } else if (typeof this.el === 'string') {
+            this.canvasDOM = document.querySelector(this.el)
+        }
         this.ctx = this.canvasDOM.getContext('2d')
         this.canvasDOM.width = this.width
         this.canvasDOM.height = this.height
@@ -120,12 +152,13 @@ class Canvas extends Event {
     }
     mouseEventPosition(e) {
         let pos = this.canvasDOM.getBoundingClientRect()
-        return {
+        let mousePos = {
             x: (e.clientX - pos.x - matrix.e) / matrix.a,
-            y: (e.clientY - pos.y - matrix.f) / matrix.a,
-            width: pos.width,
-            height: pos.height
+            y: (e.clientY - pos.y - matrix.f) / matrix.a
         }
+        mousePos.x = mousePos.x < 0 ? 0 : mousePos.x > this.width ? this.width : mousePos.x
+        mousePos.y = mousePos.y < 0 ? 0 : mousePos.y > this.imgHeight ? this.imgHeight : mousePos.y
+        return mousePos
     }
     handleMouseWheel(e) {
         let {x, y} = this.mousewheelPos = this.mouseEventPosition(e)
@@ -151,11 +184,23 @@ class Canvas extends Event {
     handleMouseDown(e) {
         e.preventDefault()
         if (this.dbclickTime && (Date.now() - this.dbclickTime < 300)) { // 用户判断用户双击结束绘制
-            if (this.activeShape && ['polygon', 'line'].includes(this.activeShape.type) && JSON.stringify(this.mouseEventPosition(e)) === JSON.stringify(this.mouse.mousedownPos)) {
-                this.activeShape.creating = false
-                this.activeShape.editing = true
-                this.update()
+            if (this.activeShape && this.activeShape.intersect) {
                 return
+            }
+            if (this.activeShape && ['polygon', 'line'].includes(this.activeShape.type)) {
+                if (this.activeShape.points.length > 4 && this.activeShape.type === 'polygon' && this.activeShape.isIntersect('drawOver') && JSON.stringify(this.mouseEventPosition(e)) === JSON.stringify(this.mouse.mousedownPos)) {
+                    this.activeShape.points.splice(this.activeShape.points.length - 1, 1)
+                    return
+                }
+                if (JSON.stringify(this.mouseEventPosition(e)) === JSON.stringify(this.mouse.mousedownPos)) {
+                    this.activeShape.points.splice(this.activeShape.points.length - 1, 1)
+                    // }
+                    this.activeShape.creating = false
+                    this.activeShape.activating = true
+                    this.update()
+                    return
+                }
+                // return
             }
         } else {
             this.dbclickTime = Date.now()
@@ -163,12 +208,17 @@ class Canvas extends Event {
         this.mouse.mousedownPos = this.mouseEventPosition(e)
         if (e.button === 2) {
             this.rightMouseDown = true
+            this.setMouseCursor('grab')
+            return
+        }
+        if (this.activeShape && ~this.activeShape.editIndex) {
+            this.activeShape.editing = true
             return
         }
         if (this.selectTool === 'select') {
             if (this.activeShape) {
                 this.activeShape.activating = false
-                this.activeShape.editing = false
+                // this.activeShape.editing = false
                 this.activeShape = null
             }
             if (!~this.activeIndex) {
@@ -177,7 +227,7 @@ class Canvas extends Event {
             }
             this.activeShape = this.shapeList[this.activeIndex]
             this.activeShape.activating = true
-            this.activeShape.editing = true
+            this.emit('selectedShape', this.activeShape)
             this.update()
             return
         }
@@ -185,42 +235,53 @@ class Canvas extends Event {
             switch(this.selectTool) {
                 case 'rect':
                     this.activeShape.creating = false
-                    this.activeShape.editing = true
+                    this.activeShape.activating = true
                     break
                 case 'line':
                 case 'polygon':
                     this.activeShape.points.splice(this.activeShape.points.length - 1, 1, this.mouse.mousedownPos, this.mouse.mousedownPos)
+                    this.activeShape.intersect = false
+                    if (this.activeShape.points.length > 4 && this.activeShape.isIntersect()) {
+                        this.activeShape.points.splice(this.activeShape.points.length - 1, 1)
+                        this.activeShape.intersect = true
+                    }
                     break
                 case 'cube':
                     if (this.activeShape.points.length === 3) {
                         this.activeShape.creating = false
-                        this.activeShape.activating = true
-                        this.activeShape.editing = true
                         break
                     }
                     this.activeShape.points.splice(this.activeShape.points.length - 1, 1, this.mouse.mousedownPos, this.mouse.mousedownPos)
                     break
-                }
-
+            }
             this.update()
             return
         }
         if (this.selectTool) {
-            this.activeShape && (this.activeShape.editing = false)
+            this.activeShape && (this.activeShape.activating = false)
             this.activeShape = this.createShape(this.selectTool, this.shapeProps || {})
             this.activeShape.creating = true
-            this.activeShape.activating = true
             this.addShape(this.activeShape)
         }
     }
     handleMouseMove(e) {
         this.mouse.mousemovePos = this.mouseEventPosition(e)
         if (this.rightMouseDown) {
+            this.setMouseCursor('grabbing')
             let offsetX = this.mouse.mousemovePos.x - this.mouse.mousedownPos.x
             let offsetY = this.mouse.mousemovePos.y - this.mouse.mousedownPos.y
             matrix.translate(offsetX, offsetY)
             this.ctx.setTransform(matrix.clone())
             this.update()
+            return
+        }
+        if (this.activeShape && this.activeShape.editing) {
+            this.activeShape.updateGraph(this.activeShape.editIndex, this.mouse.mousemovePos)
+            this.update()
+            return
+        }
+        if (this.activeShape && this.activeShape.activating) {
+            this.activeShape.editIndex = this.activeShape.controlPointsIndex(this.mouse.mousemovePos)
         }
         if (this.selectTool === 'select') {
             this.selectShape()
@@ -257,33 +318,33 @@ class Canvas extends Event {
         if (activeShapeList.length === 1) {
             let item = activeShapeList[0]
             item.activating = true
-            item.editing = true
             this.activeIndex = item.index
+            this.emit('hoverShape', item)
         } else {
             for (let i = 0; i < activeShapeList.length; i++) {
                 let item = activeShapeList[i]
                 if (item.type === 'line') {
                     item.activating = true
-                    item.editing = true
                     this.activeIndex = item.index
                     this.update()
+                    this.emit('hoverShape', item)
                     return
                 }
                 let itemArea = item.getArea()
                 if (minArea) {
                     if (itemArea < minArea) {
                         item.activating = true
-                        item.editing = true
                         this.activeIndex = item.index
                         this.update()
+                        this.emit('hoverShape', item)
                         return
                     }
                 } else {
                     minArea = itemArea
                     item.activating = true
-                    item.editing = true
                     this.activeIndex = item.index
                     this.update()
+                    this.emit('hoverShape', item)
                 }
             }
         }
@@ -291,28 +352,22 @@ class Canvas extends Event {
         return
     }
     handleMouseUp() {
-        this.rightMouseDown = false
+        if (this.rightMouseDown) {
+            this.setMouseCursor('auto')
+            this.rightMouseDown = false
+        }
+        if (this.activeShape && this.activeShape.editing) {
+            this.activeShape.editing = false
+        }
     }
     createShape(tool, shapeProps) {
         let newShape = null
-        switch(tool) {
-            case 'rect':
-                newShape = new Rect(this.ctx, shapeProps)
-                break
-            case 'polygon':
-                newShape = new Polygon(this.ctx, shapeProps)
-                break
-            case 'line':
-                newShape = new Line(this.ctx, shapeProps)
-                break
-            case 'point':
-                newShape = new Point(this.ctx, shapeProps)
-                break
-            case 'cube':
-                newShape = new Cube(this.ctx, shapeProps)
-                break
-        }
+        let Shape = this[tool.slice(0, 1).toUpperCase() + tool.slice(1)]
+        newShape = new Shape(this.ctx, shapeProps)
         return newShape
+    }
+    setMouseCursor(mouseStyle) {
+        this.canvasDOM.style.cursor = mouseStyle
     }
     setData(data) {
         let newShape = null
