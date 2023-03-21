@@ -31,7 +31,9 @@ class Canvas extends Event {
         el,
         width,
         height,
-        imgUrl
+        imgUrl,
+        minScale,
+        maxScale
     }) {
         super()
         this.el = el
@@ -46,9 +48,8 @@ class Canvas extends Event {
         this.img.src = imgUrl
         this.activeShape = null
         this.scale = 1
-        this.minScale = 0.6
-        this.maxScale = 40
-        this.baseScaleStep = .5
+        this.minScale = minScale || 0.6
+        this.maxScale = maxScale || 40
         this.index = 0
         this.activeIndex = -1
         this.pixelSize = {}
@@ -106,6 +107,7 @@ class Canvas extends Event {
         this.canvasDOM.addEventListener('mouseup', this.handleMouseUp.bind(this))
         this.canvasDOM.addEventListener('mousewheel', this.handleMouseWheel.bind(this))
         document.addEventListener('keydown', e => {
+            e.preventDefault()
             if (e.key === 'r') {
                 matrix.reset()
                 this.ctx.setTransform(matrix.clone())
@@ -114,10 +116,27 @@ class Canvas extends Event {
             if (e.key === 'v') {
                 this.selectTool = 'select'
             }
+            if (e.key === 'Delete') {
+                ~this.activeIndex && this.deleteByIndex(this.activeIndex)
+                this.update()
+            }
         })
         document.addEventListener('contextmenu', (e) => {e.preventDefault()})
         this.update()
         this.emit('created')
+    }
+    setImage(src) {
+        this.img.src = src
+        this.img.setAttribute("crossOrigin", "anonymous");
+        this.img.onload = () => {
+            this.pixelRatio = this.img.naturalWidth / this.img.naturalHeight
+            this.pixelSize = {
+                w: this.img.naturalWidth,
+                h: this.img.naturalHeight
+            }
+            this.imgHeight = this.width / this.pixelRatio
+            this.update()
+        }
     }
     fitInWindow() {
         matrix.reset()
@@ -370,12 +389,35 @@ class Canvas extends Event {
         this.canvasDOM.style.cursor = mouseStyle
     }
     setData(data) {
+        this.shapeList = []
         let newShape = null
         data.forEach(item => {
             newShape = this.createShape(item.type, item)
             this.shapeList.push(newShape)
         })
         this.update()
+    }
+    deleteByIndex(index) {
+        this.shapeList.splice(index, 1)
+    }
+    destory() {
+        this.canvasDOM.removeEventListener('mousedown', this.handleMouseDown.bind(this))
+        this.canvasDOM.removeEventListener('mousemove', (e) => {
+            debounce(this.handleMouseMove.bind(this, e), 10)
+        })
+        this.canvasDOM.removeEventListener('mouseup', this.handleMouseUp.bind(this))
+        this.canvasDOM.removeEventListener('mousewheel', this.handleMouseWheel.bind(this))
+        document.removeEventListener('keydown', e => {
+            if (e.key === 'r') {
+                matrix.reset()
+                this.ctx.setTransform(matrix.clone())
+                this.update()
+            }
+            if (e.key === 'v') {
+                this.selectTool = 'select'
+            }
+        })
+        document.removeEventListener('contextmenu', (e) => {e.preventDefault()})
     }
 }
 

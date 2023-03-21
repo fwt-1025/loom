@@ -20,6 +20,7 @@
         <button class="line">线</button>
         <button class="select">选择工具</button>
         <button class="fitIn">自动适配</button>
+        <button class="changeImg">切换素材</button>
         <button class="getactiveShape">获取当前激活的图形</button>
     </div>
     <canvas id="c"></canvas>
@@ -31,6 +32,7 @@
         const select = document.querySelector('.select')
         const getactiveShape = document.querySelector('.getactiveShape')
         const fitIn = document.querySelector('.fitIn')
+        const changeImg = document.querySelector('.changeImg')
         const c = new Canvas({
             el: document.querySelector('#c'),
             width: 1500,
@@ -54,6 +56,23 @@
             c.shapeProps = {
                 lineColor: '#f00'
             }
+        }
+        changeImg.onclick = () => {
+            
+            c.setImage('https://img2.baidu.com/it/u=1616771963,611621491&fm=253&fmt=auto&app=138&f=JPEG?w=750&h=500')
+            c.setData([
+            {
+                    type: 'rect',
+                    points: [{
+                        x: 200,
+                        y: 200
+                    }, {
+                        x: 400,
+                        y: 400
+                    }],
+                    lineColor: '#00f'
+                }
+            ])
         }
         select.onclick = () => {
             c.selectTool = 'select'
