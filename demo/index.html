@@ -41,6 +41,21 @@
             // height: 600,
             imgUrl: 'https://img0.baidu.com/it/u=2384171364,597242015&fm=253&fmt=auto&app=138&f=JPEG?w=945&h=500'
         })
+        document.addEventListener('keydown', e => {
+            e.preventDefault()
+            if (e.key === 'r') {
+                c.matrix.reset()
+                c.ctx.setTransform(c.matrix.clone())
+                c.update()
+            }
+            if (e.key === 'v') {
+                c.selectTool = 'select'
+            }
+            if (e.key === 'Delete') {
+                ~c.activeIndex && c.deleteByIndex(c.activeIndex)
+                c.update()
+            }
+        })
         rect.onclick = () => {
             c.selectTool = 'rect'
             c.shapeProps = {
@@ -138,6 +153,7 @@
             })
             c.addShape(r)
             c.update()
+            console.log(c.getResultData())
         })
     </script>
 </body>

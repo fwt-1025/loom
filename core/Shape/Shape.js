@@ -11,7 +11,8 @@ export default class Shape extends Event{
         fillColor,
         lineWidth,
         control,
-        opacity
+        opacity,
+        uuid
     }) {
         super()
         this.ctx = ctx
@@ -27,7 +28,7 @@ export default class Shape extends Event{
         this.creating = false
         this.editing = false
         this.activating = false
-        this.uuid = Math.random()
+        this.uuid = uuid || Math.random()
     }
     controlPointsIndex(pos) {
         let controlPoints = this.getControlPoints()
@@ -59,5 +60,12 @@ export default class Shape extends Event{
             this.ctx.closePath()
         })
         this.ctx.restore()
+    }
+    getData() {
+        return {
+            coordinates: this.points,
+            type: this.type,
+            uuid: this.uuid
+        }
     }
 }

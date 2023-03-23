@@ -55,6 +55,7 @@ class Canvas extends Event {
         this.index = 0
         this.activeIndex = -1
         this.pixelSize = {}
+        this.matrix = matrix
         this.focusMode = focusMode || false
         this.mouse = {
             mousedownPos: {
@@ -109,21 +110,21 @@ class Canvas extends Event {
         })
         this.canvasDOM.addEventListener('mouseup', this.handleMouseUp.bind(this))
         this.canvasDOM.addEventListener('mousewheel', this.handleMouseWheel.bind(this))
-        document.addEventListener('keydown', e => {
-            e.preventDefault()
-            if (e.key === 'r') {
-                matrix.reset()
-                this.ctx.setTransform(matrix.clone())
-                this.update()
-            }
-            if (e.key === 'v') {
-                this.selectTool = 'select'
-            }
-            if (e.key === 'Delete') {
-                ~this.activeIndex && this.deleteByIndex(this.activeIndex)
-                this.update()
-            }
-        })
+        // document.addEventListener('keydown', e => {
+        //     e.preventDefault()
+        //     if (e.key === 'r') {
+        //         matrix.reset()
+        //         this.ctx.setTransform(matrix.clone())
+        //         this.update()
+        //     }
+        //     if (e.key === 'v') {
+        //         this.selectTool = 'select'
+        //     }
+        //     if (e.key === 'Delete') {
+        //         ~this.activeIndex && this.deleteByIndex(this.activeIndex)
+        //         this.update()
+        //     }
+        // })
         document.addEventListener('contextmenu', (e) => {e.preventDefault()})
         this.update()
         this.emit('created')
@@ -147,6 +148,11 @@ class Canvas extends Event {
         let ox = (this.width - this.width * 0.65) / 2
         let oy = (this.height - this.imgHeight * 0.65) / 2
         matrix.translate(ox, oy)
+        this.ctx.setTransform(matrix.clone())
+        this.update()
+    }
+    resetCanvas() {
+        matrix.reset()
         this.ctx.setTransform(matrix.clone())
         this.update()
     }
@@ -422,6 +428,15 @@ class Canvas extends Event {
     }
     deleteByIndex(index) {
         this.shapeList.splice(index, 1)
+    }
+    getResultData() {
+        let regions = this.shapeList.map(item => {
+            return item.getData()
+        })
+        return {
+            pixelSize: this.pixelSize,
+            regions
+        }
     }
     destory() {
         this.canvasDOM.removeEventListener('mousedown', this.handleMouseDown.bind(this))
