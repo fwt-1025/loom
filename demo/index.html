@@ -21,6 +21,7 @@
         <button class="select">选择工具</button>
         <button class="fitIn">自动适配</button>
         <button class="changeImg">切换素材</button>
+        <button class="focusShape">开启聚焦模式</button>
         <button class="getactiveShape">获取当前激活的图形</button>
     </div>
     <canvas id="c"></canvas>
@@ -33,10 +34,11 @@
         const getactiveShape = document.querySelector('.getactiveShape')
         const fitIn = document.querySelector('.fitIn')
         const changeImg = document.querySelector('.changeImg')
+        const focusShape = document.querySelector('.focusShape')
         const c = new Canvas({
             el: document.querySelector('#c'),
-            width: 1500,
-            height: 700,
+            // width: 1500,
+            // height: 600,
             imgUrl: 'https://img0.baidu.com/it/u=2384171364,597242015&fm=253&fmt=auto&app=138&f=JPEG?w=945&h=500'
         })
         rect.onclick = () => {
@@ -55,6 +57,14 @@
             c.selectTool = 'line'
             c.shapeProps = {
                 lineColor: '#f00'
+            }
+        }
+        focusShape.onclick = () => {
+            c.focusMode = !c.focusMode
+            if (c.focusMode) {
+                focusShape.innerHTML = '关闭聚焦模式'
+            } else {
+                focusShape.innerHTML = '开启聚焦模式'
             }
         }
         changeImg.onclick = () => {
@@ -88,21 +98,6 @@
             // info.fillColor = '#000'
         })
         c.on('created', () => {
-            let r = new c.Rect(c.ctx, {
-                // points: [{
-                //     x: 100,
-                //     y: 100
-                // }, {
-                //     x: 300,
-                //     y: 300
-                // }]
-                width: 100,
-                height: 100,
-                left: 100,
-                top: 100,
-                lineColor: '#0f0'
-            })
-            c.addShape(r)
             c.setData([
                 {
                     type: 'rect',
@@ -118,15 +113,31 @@
                 {
                     type: 'rect',
                     points: [{
-                        x: 500,
-                        y: 500
+                        x: 200,
+                        y: 50
                     }, {
-                        x: 700,
-                        y: 700
+                        x: 400,
+                        y: 150
                     }],
                     lineColor: '#0f0'
                 }
             ])
+            let r = new c.Rect(c.ctx, {
+                // points: [{
+                //     x: 100,
+                //     y: 100
+                // }, {
+                //     x: 300,
+                //     y: 300
+                // }]
+                width: 100,
+                height: 100,
+                left: 100,
+                top: 100,
+                lineColor: '#0f0'
+            })
+            c.addShape(r)
+            c.update()
         })
     </script>
 </body>

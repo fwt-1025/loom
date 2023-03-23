@@ -60,6 +60,35 @@ export default class Polygon extends Shape{
         S = Math.abs(S / 2)
         return S
     }
+    getMaxAndMinmun() {
+        let xList = []
+        let yList = []
+        this.points.forEach(item => {
+            xList.push(item.x)
+            yList.push(item.y)
+        })
+        let maxX = Math.max.apply(null, xList)
+        let minX = Math.min.apply(null, xList)
+        let maxY = Math.max.apply(null, yList)
+        let minY = Math.min.apply(null, yList)
+        return {
+            max: {
+                x: maxX,
+                y: maxY
+            },
+            min: {
+                x: minX,
+                y: minY
+            }
+        }
+    }
+    getShapeCenter() {
+        let {max, min} = this.getMaxAndMinmun()
+        return {
+            x: (max.x + min.x) / 2,
+            y: (max.y + min.y) / 2,
+        }
+    }
     isIntersect(type) {
         // 这里type的含义是当多边形结束绘制时，要最后判断一次最后一个点与起始点连成的线是否与其他线段有交点，如果有，不允许结束
         let points = this.points.slice()

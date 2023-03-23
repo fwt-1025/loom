@@ -107,6 +107,19 @@ export default class Rect extends Shape{
         let { x: x1, y: y1 } = this.points[1]
         return (x1 - x) * (y1 - y)
     }
+    getMaxAndMinmun() {
+        return {
+            max: this.points[1],
+            min: this.points[0]
+        }
+    }
+    getShapeCenter() {
+        let {max, min} = this.getMaxAndMinmun()
+        return {
+            x: (max.x + min.x) / 2,
+            y: (max.y + min.y) / 2,
+        }
+    }
     isPointInPath(pos) {
         let {x: sx, y: sy} = this.points[0]
         let {x: ex, y: ey} = this.points[1]

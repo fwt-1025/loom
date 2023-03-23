@@ -33,7 +33,9 @@ class Canvas extends Event {
         height,
         imgUrl,
         minScale,
-        maxScale
+        maxScale,
+        focusMode,
+        selectTool
     }) {
         super()
         this.el = el
@@ -41,7 +43,7 @@ class Canvas extends Event {
         this.width = width || window.innerWidth
         this.height = height || window.innerHeight
         this.canvasDOM = null
-        this.selectTool = ''
+        this.selectTool = selectTool || 'select'
         this.offsetX = 0
         this.offsetY = 0
         this.img = new Image()
@@ -53,6 +55,7 @@ class Canvas extends Event {
         this.index = 0
         this.activeIndex = -1
         this.pixelSize = {}
+        this.focusMode = focusMode || false
         this.mouse = {
             mousedownPos: {
                 x: 0,
@@ -246,6 +249,9 @@ class Canvas extends Event {
             }
             this.activeShape = this.shapeList[this.activeIndex]
             this.activeShape.activating = true
+            if (this.focusMode) {
+                this.setFocusMode()
+            }
             this.emit('selectedShape', this.activeShape)
             this.update()
             return
@@ -292,6 +298,7 @@ class Canvas extends Event {
             matrix.translate(offsetX, offsetY)
             this.ctx.setTransform(matrix.clone())
             this.update()
+            console.log(matrix.clone())
             return
         }
         if (this.activeShape && this.activeShape.editing) {
@@ -379,6 +386,18 @@ class Canvas extends Event {
             this.activeShape.editing = false
         }
     }
+    setFocusMode() {
+        let {x:cx, y:cy} = this.activeShape.getShapeCenter()
+        let {max, min} = this.activeShape.getMaxAndMinmun()
+        let {w, h} = {w: this.width, h: this.height}
+        let scale = Math.floor(h / (max.y - min.y)) - 0.3
+        matrix.reset()
+        matrix.scaleU(scale)
+        matrix.e += (w / 2) - cx * matrix.a
+        matrix.f += (h / 2) - cy * matrix.a
+        this.ctx.setTransform(matrix.clone())
+        this.update()
+    }
     createShape(tool, shapeProps) {
         let newShape = null
         let Shape = this[tool.slice(0, 1).toUpperCase() + tool.slice(1)]
@@ -392,6 +411,10 @@ class Canvas extends Event {
         this.shapeList = []
         let newShape = null
         data.forEach(item => {
+            item.points.forEach(item => {
+                item.x = item.x / this.img.naturalWidth * this.width
+                item.y = item.y / this.img.naturalHeight * this.imgHeight
+            })
             newShape = this.createShape(item.type, item)
             this.shapeList.push(newShape)
         })
