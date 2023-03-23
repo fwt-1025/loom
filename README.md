@@ -4,7 +4,7 @@ canvas做的在线标注库，适用于自动驾驶标注，目前支持图像�
 #### 快速使用
 
 ```typescript
-    import Canvas from 'annotation'
+    import Canvas from 'canvas-annotation'
     interface canvasProps = {
         el: string | HTMLCanvasElement,
         width?: number,
@@ -40,7 +40,7 @@ canvas做的在线标注库，适用于自动驾驶标注，目前支持图像�
 | minScale |  number |   最小缩放倍数 |
 | maxScale | number |  最大缩放倍数 |
 | activeIndex | number | 当前激活的下标, 如果想设置不激活，请把此属性设置为-1 |
-|
+| focusMode | boolean | 专注模式，默认false |
 
 
 #### 方法
