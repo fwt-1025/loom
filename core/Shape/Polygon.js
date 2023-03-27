@@ -27,7 +27,6 @@ export default class Polygon extends Shape{
         this.ctx.setTransform(1, 0, 0, 1, 0, 0)
         this.ctx.strokeStyle = this.lineColor
         this.ctx.fillStyle = this.lineColor
-        console.log(this.lineWidth)
         this.ctx.lineWidth = this.lineWidth
         this.points.forEach((item, index) => {
             let { x, y } = item

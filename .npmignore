@@ -1,0 +1,7 @@
+demo
+node_modules
+scripts
+.gitignore
+package-lock.json
+rename.sh
+.git-rewrite

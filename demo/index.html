@@ -11,6 +11,16 @@
             padding: 0;
             overflow: hidden;
         }
+        .flex-box{
+            display: flex;
+            justify-content: start;
+        }
+        .json-data, .activeShape{
+            width: 300px;
+            height: 500px;
+            overflow-y: auto;
+            border: 1px solid #ccc;
+        }
     </style>
 </head>
 <body>
@@ -18,29 +28,46 @@
         <button class="rect">矩形</button>
         <button class="polygon">多边形</button>
         <button class="line">线</button>
+        <button class="point">点</button>
         <button class="select">选择工具</button>
         <button class="fitIn">自动适配</button>
         <button class="changeImg">切换素材</button>
         <button class="focusShape">开启聚焦模式</button>
         <button class="getactiveShape">获取当前激活的图形</button>
+        <button class="getAnnotateData">获取标注数据</button>
     </div>
-    <canvas id="c"></canvas>
+    <div class="flex-box">
+        <canvas id="c"></canvas>
+        <div class="json-data">
+            标注数据
+            <pre class="annotate-data"></pre>
+        </div>
+        <div class="activeShape">
+            当前激活的图形
+            <pre class="activeShapeData"></pre>
+        </div>
+    </div>
     <script type="module">
         import Canvas from '../index.js'
         const rect = document.querySelector('.rect')
         const polygon = document.querySelector('.polygon')
         const line = document.querySelector('.line')
+        const point = document.querySelector('.point')
         const select = document.querySelector('.select')
         const getactiveShape = document.querySelector('.getactiveShape')
         const fitIn = document.querySelector('.fitIn')
         const changeImg = document.querySelector('.changeImg')
         const focusShape = document.querySelector('.focusShape')
+        const getAnnotateData = document.querySelector('.getAnnotateData')
         const c = new Canvas({
             el: document.querySelector('#c'),
-            // width: 1500,
-            // height: 600,
+            width: 900,
+            height: 500,
             imgUrl: 'https://img0.baidu.com/it/u=2384171364,597242015&fm=253&fmt=auto&app=138&f=JPEG?w=945&h=500'
         })
+        getAnnotateData.onclick = () => {
+            document.querySelector('.annotate-data').innerHTML = JSON.stringify(c.getResultData(), '\n', 2)
+        }
         document.addEventListener('keydown', e => {
             e.preventDefault()
             if (e.key === 'r') {
@@ -74,6 +101,12 @@
                 lineColor: '#f00'
             }
         }
+        point.onclick = () => {
+            c.selectTool = 'point'
+            c.shapeProps = {
+                lineColor: '#0f0'
+            }
+        }
         focusShape.onclick = () => {
             c.focusMode = !c.focusMode
             if (c.focusMode) {
@@ -103,7 +136,7 @@
             c.selectTool = 'select'
         }
         getactiveShape.onclick = () => {
-            console.log(c.getCurrentActiveShape())
+            document.querySelector('.activeShapeData').innerHTML = JSON.stringify(c.getCurrentActiveShape(), '\n', 2)
         }
         fitIn.onclick = () => {
             c.fitInWindow()
@@ -153,7 +186,6 @@
             })
             c.addShape(r)
             c.update()
-            console.log(c.getResultData())
         })
     </script>
 </body>

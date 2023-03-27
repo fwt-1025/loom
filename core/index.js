@@ -5,7 +5,7 @@ import Line from './Shape/Line.js'
 import Cube from './Shape/Cube.js'
 import Point from './Shape/Point.js'
 import matrix from './utils/matrix.js'
-import { warn, error } from './utils/index.js'
+import { warn, error, debounce } from './utils/index.js'
 /**
  * 定义事件
  * selectedShape  选中图形触发的事件，回调参数 shape
@@ -27,6 +27,11 @@ class Canvas extends Event {
     rightMouseDown = false
     rightMouseMove = false
     dbclickTime = 0
+    canvasDOM = null
+    offsetX = 0
+    offsetY = 0
+    img = new Image()
+    activeShape = null
     constructor({
         el,
         width,
@@ -35,20 +40,16 @@ class Canvas extends Event {
         minScale,
         maxScale,
         focusMode,
-        selectTool
+        selectTool,
+        font
     }) {
         super()
         this.el = el
         this.shapeList = []
         this.width = width || window.innerWidth
         this.height = height || window.innerHeight
-        this.canvasDOM = null
         this.selectTool = selectTool || 'select'
-        this.offsetX = 0
-        this.offsetY = 0
-        this.img = new Image()
         this.img.src = imgUrl
-        this.activeShape = null
         this.scale = 1
         this.minScale = minScale || 0.6
         this.maxScale = maxScale || 40
@@ -57,7 +58,11 @@ class Canvas extends Event {
         this.pixelSize = {}
         this.matrix = matrix
         this.focusMode = focusMode || false
+        this.font = font || '14px 微软雅黑'
         this.mouse = {
+            down: false,
+            move: false,
+            up: false,
             mousedownPos: {
                 x: 0,
                 y: 0
@@ -102,6 +107,7 @@ class Canvas extends Event {
             this.canvasDOM = document.querySelector(this.el)
         }
         this.ctx = this.canvasDOM.getContext('2d')
+        this.ctx.font = '10px 微软雅黑'
         this.canvasDOM.width = this.width
         this.canvasDOM.height = this.height
         this.canvasDOM.addEventListener('mousedown', this.handleMouseDown.bind(this))
@@ -110,21 +116,6 @@ class Canvas extends Event {
         })
         this.canvasDOM.addEventListener('mouseup', this.handleMouseUp.bind(this))
         this.canvasDOM.addEventListener('mousewheel', this.handleMouseWheel.bind(this))
-        // document.addEventListener('keydown', e => {
-        //     e.preventDefault()
-        //     if (e.key === 'r') {
-        //         matrix.reset()
-        //         this.ctx.setTransform(matrix.clone())
-        //         this.update()
-        //     }
-        //     if (e.key === 'v') {
-        //         this.selectTool = 'select'
-        //     }
-        //     if (e.key === 'Delete') {
-        //         ~this.activeIndex && this.deleteByIndex(this.activeIndex)
-        //         this.update()
-        //     }
-        // })
         document.addEventListener('contextmenu', (e) => {e.preventDefault()})
         this.update()
         this.emit('created')
@@ -165,6 +156,7 @@ class Canvas extends Event {
         this.shapeList.forEach((item, index) => {
             item.index = index
             item.drawGraph()
+            item.drawText()
         })
     }
     clear() {
@@ -172,6 +164,17 @@ class Canvas extends Event {
         this.ctx.setTransform(1, 0, 0, 1, 0, 0)
         this.ctx.clearRect(0, 0, this.width, this.height)
         this.ctx.restore()
+    }
+    getActiveShapeIndex() {
+        if (~this.activeIndex) {
+            return this.activeIndex
+        }
+        if (!this.activeShape) {
+            warn('You need to select a graphic, but the program did not obtain it. Please confirm')
+            return
+        }
+        let index = this.shapeList.findIndex(item => item.uuid === this.activeShape.uuid)
+        return index
     }
     getCurrentActiveShape() {
         // 获取当前激活的图形
@@ -239,8 +242,13 @@ class Canvas extends Event {
             this.setMouseCursor('grab')
             return
         }
+        if (this.activeShape) {
+            this.mouse.down = true
+        }
         if (this.activeShape && ~this.activeShape.editIndex) {
-            this.activeShape.editing = true
+            if (this.activeShape.type !== 'point') {
+                this.activeShape.editing = true
+            }
             return
         }
         if (this.selectTool === 'select') {
@@ -291,6 +299,13 @@ class Canvas extends Event {
         if (this.selectTool) {
             this.activeShape && (this.activeShape.activating = false)
             this.activeShape = this.createShape(this.selectTool, this.shapeProps || {})
+            if (this.selectTool === 'point') {
+                this.activeShape.initPoints(this.mouse.mousedownPos)
+                this.activeShape.activating = true
+                this.addShape(this.activeShape)
+                this.update()
+                return
+            }
             this.activeShape.creating = true
             this.addShape(this.activeShape)
         }
@@ -304,11 +319,16 @@ class Canvas extends Event {
             matrix.translate(offsetX, offsetY)
             this.ctx.setTransform(matrix.clone())
             this.update()
-            console.log(matrix.clone())
             return
         }
         if (this.activeShape && this.activeShape.editing) {
             this.activeShape.updateGraph(this.activeShape.editIndex, this.mouse.mousemovePos)
+            this.update()
+            return
+        }
+        if (this.activeShape && this.activeShape.canDrag && this.mouse.down) {
+            this.dragShape(this.mouse.mousedownPos, this.mouse.mousemovePos)
+            this.mouse.mousedownPos = this.mouse.mousemovePos
             this.update()
             return
         }
@@ -391,6 +411,9 @@ class Canvas extends Event {
         if (this.activeShape && this.activeShape.editing) {
             this.activeShape.editing = false
         }
+        if (this.mouse.down) {
+            this.mouse.down = false
+        }
     }
     setFocusMode() {
         let {x:cx, y:cy} = this.activeShape.getShapeCenter()
@@ -409,6 +432,42 @@ class Canvas extends Event {
         let Shape = this[tool.slice(0, 1).toUpperCase() + tool.slice(1)]
         newShape = new Shape(this.ctx, shapeProps)
         return newShape
+    }
+    dragShape(ms, me) {
+        let offsetX = me.x - ms.x
+        let offsetY = me.y - ms.y
+        let points = this.activeShape.points
+        // 需要分偏移量为正数还是负数 , 正即为右下 负即为左上 
+        let maxX, maxY, minX, minY
+        if (offsetX >= 0) {
+            maxX = Math.max.apply(null, points.map(item => item.x))
+        }
+        if (offsetY >= 0) {
+            maxY = Math.max.apply(null, points.map(item => item.y))
+        }
+        if (offsetX <= 0) {
+            minX = Math.min(...points.map(item => item.x))
+        }
+        if (offsetY <= 0) {
+            minY = Math.min(...points.map(item => item.y))
+        }
+        if (maxX + offsetX >= this.width) {
+            return
+        }
+        if (maxY + offsetY >= this.imgHeight) {
+            return
+        }
+        if (minX + offsetX <= 0) {
+            return
+        }
+        if (minY + offsetY <= 0) {
+            return
+        }
+        for (let i = 0; i < points.length; i++) {
+            let item = points[i]
+            item.x = item.x + offsetX
+            item.y = item.y + offsetY
+        }
     }
     setMouseCursor(mouseStyle) {
         this.canvasDOM.style.cursor = mouseStyle
@@ -457,19 +516,6 @@ class Canvas extends Event {
         })
         document.removeEventListener('contextmenu', (e) => {e.preventDefault()})
     }
-}
-
-let time = 0
-function debounce(fn, delay) {
-    if (!time) {
-        fn()
-        time = Date.now()
-    }
-    if (Date.now() - time < delay) {
-        return
-    }
-    fn()
-    time = Date.now()
 }
 
 

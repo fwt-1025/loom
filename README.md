@@ -1,6 +1,8 @@
 # annotation
 canvas做的在线标注库，适用于自动驾驶标注，目前支持图像的指定位置缩放，拖动，绘制矩形、多边形、线等，库会持续维护。
 
+#### [Online example](https://codepen.io/componentty/pen/VwGgVar)
+
 #### 快速使用
 
 ```typescript
