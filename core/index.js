@@ -41,7 +41,8 @@ class Canvas extends Event {
         maxScale,
         focusMode,
         selectTool,
-        font
+        font,
+        customTag
     }) {
         super()
         this.el = el
@@ -59,6 +60,7 @@ class Canvas extends Event {
         this.matrix = matrix
         this.focusMode = focusMode || false
         this.font = font || '14px 微软雅黑'
+        this.customTag = customTag || false // 开启之后，可以自定义显示对应的图形标签， 默认标签将不显示，用户可以根据提供的矩阵信息，自行绘制标签
         this.mouse = {
             down: false,
             move: false,
@@ -156,7 +158,8 @@ class Canvas extends Event {
         this.shapeList.forEach((item, index) => {
             item.index = index
             item.drawGraph()
-            item.drawText()
+            !this.customTag && item.drawText()
+            this.customTag && this.customTag(item, index)
         })
     }
     clear() {
@@ -322,11 +325,14 @@ class Canvas extends Event {
             return
         }
         if (this.activeShape && this.activeShape.editing) {
-            this.activeShape.updateGraph(this.activeShape.editIndex, this.mouse.mousemovePos)
+            // if (this.activeShape.angle) {
+            //     this.activeShape.updateGraph(this.activeShape.editIndex, this.mouse.mousemovePos,)
+            // }
+            this.activeShape.updateGraph(this.activeShape.editIndex, this.mouse.mousemovePos, this.mouse.mousedownPos)
             this.update()
             return
         }
-        if (this.activeShape && this.activeShape.canDrag && this.mouse.down) {
+        if (this.activeShape && this.activeShape.canDrag && this.mouse.down && this.activeShape.activating) {
             this.dragShape(this.mouse.mousedownPos, this.mouse.mousemovePos)
             this.mouse.mousedownPos = this.mouse.mousemovePos
             this.update()
@@ -337,6 +343,7 @@ class Canvas extends Event {
         }
         if (this.selectTool === 'select') {
             this.selectShape()
+            return
         }
         if (this.activeShape?.creating) {
             switch(this.selectTool) {
@@ -353,6 +360,7 @@ class Canvas extends Event {
         }
     }
     selectShape() {
+        this.setMouseCursor('auto')
         let activeShapeList = this.shapeList.filter(item => {
             if (!this.activeShape || item.uuid !== this.activeShape.uuid) {
                 item.activating = false
@@ -369,14 +377,14 @@ class Canvas extends Event {
          */
         if (activeShapeList.length === 1) {
             let item = activeShapeList[0]
-            item.activating = true
+            // item.activating = true
             this.activeIndex = item.index
             this.emit('hoverShape', item)
         } else {
             for (let i = 0; i < activeShapeList.length; i++) {
                 let item = activeShapeList[i]
                 if (item.type === 'line') {
-                    item.activating = true
+                    // item.activating = true
                     this.activeIndex = item.index
                     this.update()
                     this.emit('hoverShape', item)
@@ -385,7 +393,7 @@ class Canvas extends Event {
                 let itemArea = item.getArea()
                 if (minArea) {
                     if (itemArea < minArea) {
-                        item.activating = true
+                        // item.activating = true
                         this.activeIndex = item.index
                         this.update()
                         this.emit('hoverShape', item)
@@ -393,7 +401,7 @@ class Canvas extends Event {
                     }
                 } else {
                     minArea = itemArea
-                    item.activating = true
+                    // item.activating = true
                     this.activeIndex = item.index
                     this.update()
                     this.emit('hoverShape', item)
