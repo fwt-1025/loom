@@ -1,5 +1,6 @@
 import Event from './event/event.js'
 import Rect from './Shape/Rect.js'
+import RectRotate from './Shape/Rect-rotate.js'
 import Polygon from './Shape/Polygon.js'
 import Line from './Shape/Line.js'
 import Cube from './Shape/Cube.js'
@@ -97,6 +98,7 @@ class Canvas extends Event {
         this.Line = Line
         this.Point = Point
         this.Cube = Cube
+        this.RectRotate = RectRotate
     }
     init() {
         if (!this.el) {
@@ -136,17 +138,17 @@ class Canvas extends Event {
         }
     }
     fitInWindow() {
-        matrix.reset()
-        matrix.scaleU(.65)
+        this.matrix.reset()
+        this.matrix.scaleU(.65)
         let ox = (this.width - this.width * 0.65) / 2
         let oy = (this.height - this.imgHeight * 0.65) / 2
-        matrix.translate(ox, oy)
-        this.ctx.setTransform(matrix.clone())
+        this.matrix.translate(ox, oy)
+        this.ctx.setTransform(this.matrix.clone())
         this.update()
     }
     resetCanvas() {
-        matrix.reset()
-        this.ctx.setTransform(matrix.clone())
+        this.matrix.reset()
+        this.ctx.setTransform(this.matrix.clone())
         this.update()
     }
     addShape(shape) {
@@ -187,8 +189,8 @@ class Canvas extends Event {
     mouseEventPosition(e) {
         let pos = this.canvasDOM.getBoundingClientRect()
         let mousePos = {
-            x: (e.clientX - pos.x - matrix.e) / matrix.a,
-            y: (e.clientY - pos.y - matrix.f) / matrix.a
+            x: (e.clientX - pos.x - this.matrix.e) / this.matrix.a,
+            y: (e.clientY - pos.y - this.matrix.f) / this.matrix.a
         }
         mousePos.x = mousePos.x < 0 ? 0 : mousePos.x > this.width ? this.width : mousePos.x
         mousePos.y = mousePos.y < 0 ? 0 : mousePos.y > this.imgHeight ? this.imgHeight : mousePos.y
@@ -204,15 +206,15 @@ class Canvas extends Event {
         // this.scale += v
         // this.scale = this.scale < 0.5 ? 0.5 : this.scale > 4 ? 4 : this.scale
         // let s1 = this.scale // 设s1为本次缩放比例
-        // let dx = (1 - s1 / s) * (x - matrix.e)
-        // let dy = (1 - s1 / s) * (y - matrix.f)
-        // matrix.e += dx
-        // matrix.f += dy
-        matrix.translate(x, y).scaleU(scale);
-        if (matrix.a < 0.3) matrix.scaleU(0.3 / matrix.a);
-        if (matrix.a > 40) matrix.scaleU(40 / matrix.a);
-        matrix.translate(-x, -y);
-        this.ctx.setTransform(matrix.clone())
+        // let dx = (1 - s1 / s) * (x - this.matrix.e)
+        // let dy = (1 - s1 / s) * (y - this.matrix.f)
+        // this.matrix.e += dx
+        // this.matrix.f += dy
+        this.matrix.translate(x, y).scaleU(scale);
+        if (this.matrix.a < 0.3) this.matrix.scaleU(0.3 / this.matrix.a);
+        if (this.matrix.a > 40) this.matrix.scaleU(40 / this.matrix.a);
+        this.matrix.translate(-x, -y);
+        this.ctx.setTransform(this.matrix.clone())
         this.update()
     }
     handleMouseDown(e) {
@@ -276,6 +278,7 @@ class Canvas extends Event {
         if (this.activeShape?.creating) {
             switch(this.selectTool) {
                 case 'rect':
+                case 'rectRotate':
                     this.activeShape.creating = false
                     this.activeShape.activating = true
                     break
@@ -319,8 +322,8 @@ class Canvas extends Event {
             this.setMouseCursor('grabbing')
             let offsetX = this.mouse.mousemovePos.x - this.mouse.mousedownPos.x
             let offsetY = this.mouse.mousemovePos.y - this.mouse.mousedownPos.y
-            matrix.translate(offsetX, offsetY)
-            this.ctx.setTransform(matrix.clone())
+            this.matrix.translate(offsetX, offsetY)
+            this.ctx.setTransform(this.matrix.clone())
             this.update()
             return
         }
@@ -348,6 +351,7 @@ class Canvas extends Event {
         if (this.activeShape?.creating) {
             switch(this.selectTool) {
                 case 'rect':
+                case 'rectRotate':
                     this.activeShape.initPoints(this.mouse.mousedownPos, this.mouse.mousemovePos)
                     break
                 case 'line':
@@ -422,17 +426,18 @@ class Canvas extends Event {
         if (this.mouse.down) {
             this.mouse.down = false
         }
+        this.activeShape && (this.activeShape.startPos = {})
     }
     setFocusMode() {
         let {x:cx, y:cy} = this.activeShape.getShapeCenter()
         let {max, min} = this.activeShape.getMaxAndMinmun()
         let {w, h} = {w: this.width, h: this.height}
         let scale = Math.floor(h / (max.y - min.y)) - 0.3
-        matrix.reset()
-        matrix.scaleU(scale)
-        matrix.e += (w / 2) - cx * matrix.a
-        matrix.f += (h / 2) - cy * matrix.a
-        this.ctx.setTransform(matrix.clone())
+        this.matrix.reset()
+        this.matrix.scaleU(scale)
+        this.matrix.e += (w / 2) - cx * this.matrix.a
+        this.matrix.f += (h / 2) - cy * this.matrix.a
+        this.ctx.setTransform(this.matrix.clone())
         this.update()
     }
     createShape(tool, shapeProps) {
@@ -514,8 +519,8 @@ class Canvas extends Event {
         this.canvasDOM.removeEventListener('mousewheel', this.handleMouseWheel.bind(this))
         document.removeEventListener('keydown', e => {
             if (e.key === 'r') {
-                matrix.reset()
-                this.ctx.setTransform(matrix.clone())
+                this.matrix.reset()
+                this.ctx.setTransform(this.matrix.clone())
                 this.update()
             }
             if (e.key === 'v') {

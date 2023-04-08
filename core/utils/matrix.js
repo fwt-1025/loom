@@ -38,6 +38,40 @@ let matrix = {
     scaleU(d) {
         return this.transform(d, 0, 0, d, 0, 0)
     },
+    rotate(deg) {
+        // let me = this
+        let cos = Math.cos(deg)
+        let sin = Math.sin(deg)
+        // let
+        // a1 = me.a,
+        // b1 = me.b,
+        // c1 = me.c,
+        // d1 = me.d,
+        // e1 = me.e,
+        // f1 = me.f;
+        // me.a = a1 * a2 + c1 * b2;
+        // me.b = b1 * a2 + d1 * b2;
+        // me.c = a1 * c2 + c1 * d2;
+        // me.d = b1 * c2 + d1 * d2;
+        // me.e = a1 * e2 + c1 * f2 + e1;
+        // me.f = b1 * e2 + d1 * f2 + f1;
+        return this.transform(cos,sin,-sin,cos,0,0)
+    },
+    getRotatePoint(deg, pos) {
+        /**
+         *  [Math.cos(deg)  -Math.sin(deg)  
+            Math.sin(deg)  Math.cos(deg)]
+            *
+            [
+                x,
+                y
+            ]
+         */
+        return {
+            x: pos.x * Math.cos(deg) + pos.y * -Math.sin(deg),
+            y: pos.y * Math.sin(deg) + pos.y * Math.cos(deg)
+        }
+    },
     clone() {
         let { a, b, c, d, e, f } = this
         return {
@@ -58,5 +92,4 @@ let matrix = {
         this.f = 0
     }
 }
-
 export default matrix
