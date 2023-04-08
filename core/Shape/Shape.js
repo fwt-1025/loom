@@ -84,10 +84,16 @@ export default class Shape extends Event{
         ctx.restore()
     }
     getData() {
-        return {
+        let obj = {
             coordinates: this.points,
             type: this.type,
             uuid: this.uuid
         }
+        if (this.rotate) {
+            obj = Object.assign(obj, {
+                angle: this.angle
+            })
+        }
+        return obj
     }
 }

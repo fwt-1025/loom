@@ -26,6 +26,7 @@
 <body>
     <div style="position: absolute; z-index: 2;">
         <button class="rect">矩形</button>
+        <button class="rect-rotate">旋转矩形</button>
         <button class="polygon">多边形</button>
         <button class="line">线</button>
         <button class="point">点</button>
@@ -50,6 +51,7 @@
     <script type="module">
         import Canvas from '../index.js'
         const rect = document.querySelector('.rect')
+        const rectRotate = document.querySelector('.rect-rotate')
         const polygon = document.querySelector('.polygon')
         const line = document.querySelector('.line')
         const point = document.querySelector('.point')
@@ -69,7 +71,6 @@
                 this.ctx.beginPath()
                 this.ctx.setTransform(1, 0, 0, 1, 0, 0)
                 this.ctx.font = '14px 微软雅黑'
-                console.log(item)
                 this.ctx.fillStyle = item.lineColor
                 this.ctx.fillText('自定义的标签' + item.type, item.points[0].x * this.matrix.a + this.matrix.e, item.points[0].y * this.matrix.a + this.matrix.f)
                 this.ctx.closePath()
@@ -98,6 +99,12 @@
             c.selectTool = 'rect'
             c.shapeProps = {
                 lineColor: '#00f'
+            }
+        }
+        rectRotate.onclick = () => {
+            c.selectTool = 'rectRotate'
+            c.shapeProps = {
+                lineColor: 'lightblue'
             }
         }
         polygon.onclick = () => {
@@ -165,7 +172,7 @@
                         x: 200,
                         y: 200
                     }, {
-                        x: 400,
+                        x: 500,
                         y: 400
                     }],
                     lineColor: '#00f'
