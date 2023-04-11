@@ -1,5 +1,5 @@
 import Event from "../event/event.js"
-
+import { getRandomId } from '../utils/getRandomId.js'
 /**
  * Shape base
  */
@@ -28,8 +28,9 @@ export default class Shape extends Event{
         this.creating = false
         this.editing = false
         this.activating = false
-        this.uuid = uuid || Math.random()
-        this.canDrag = true
+        this.uuid = uuid || getRandomId()
+        this.visible = true
+        this.dragable = false
     }
     controlPointsIndex(pos) {
         let controlPoints = this.getControlPoints()
