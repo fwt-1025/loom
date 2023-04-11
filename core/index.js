@@ -6,7 +6,7 @@ import Line from './Shape/Line.js'
 import Cube from './Shape/Cube.js'
 import Point from './Shape/Point.js'
 import matrix from './utils/matrix.js'
-import { warn, error, debounce } from './utils/index.js'
+import { warn, error, debounce, isUnDef } from './utils/index.js'
 /**
  * 定义事件
  * selectedShape  选中图形触发的事件，回调参数 shape
@@ -41,6 +41,7 @@ class Canvas extends Event {
         minScale,
         maxScale,
         focusMode,
+        showOnlyCurrent,
         selectTool,
         font,
         customTag
@@ -60,6 +61,7 @@ class Canvas extends Event {
         this.pixelSize = {}
         this.matrix = matrix
         this.focusMode = focusMode || false
+        this.showOnlyCurrent = showOnlyCurrent || false
         this.font = font || '14px 微软雅黑'
         this.customTag = customTag || false // 开启之后，可以自定义显示对应的图形标签， 默认标签将不显示，用户可以根据提供的矩阵信息，自行绘制标签
         this.mouse = {
@@ -153,10 +155,17 @@ class Canvas extends Event {
     }
     addShape(shape) {
         this.shapeList.push(shape)
+        this.emit('changed')
     }
     update() {
         this.clear()
         this.ctx.drawImage(this.img, 0, 0, this.width, this.imgHeight)
+        if (this.showOnlyCurrent && this.activeShape) {
+            this.activeShape.drawGraph()
+            !this.customTag && this.activeShape.drawText()
+            this.customTag && this.customTag(this.activeShape)
+            return
+        }
         this.shapeList.forEach((item, index) => {
             item.index = index
             item.drawGraph()
@@ -189,8 +198,8 @@ class Canvas extends Event {
     mouseEventPosition(e) {
         let pos = this.canvasDOM.getBoundingClientRect()
         let mousePos = {
-            x: (e.clientX - pos.x - this.matrix.e) / this.matrix.a,
-            y: (e.clientY - pos.y - this.matrix.f) / this.matrix.a
+            x: Math.round((e.clientX - pos.x - this.matrix.e) / this.matrix.a),
+            y: Math.round((e.clientY - pos.y - this.matrix.f) / this.matrix.a)
         }
         mousePos.x = mousePos.x < 0 ? 0 : mousePos.x > this.width ? this.width : mousePos.x
         mousePos.y = mousePos.y < 0 ? 0 : mousePos.y > this.imgHeight ? this.imgHeight : mousePos.y
@@ -234,6 +243,7 @@ class Canvas extends Event {
                     this.activeShape.creating = false
                     this.activeShape.activating = true
                     this.update()
+                    this.activeIndex = this.shapeList.length - 1
                     return
                 }
                 // return
@@ -281,6 +291,7 @@ class Canvas extends Event {
                 case 'rectRotate':
                     this.activeShape.creating = false
                     this.activeShape.activating = true
+                    this.activeIndex = this.shapeList.length - 1
                     break
                 case 'line':
                 case 'polygon':
@@ -310,6 +321,7 @@ class Canvas extends Event {
                 this.activeShape.activating = true
                 this.addShape(this.activeShape)
                 this.update()
+                this.activeIndex = this.shapeList.length - 1
                 return
             }
             this.activeShape.creating = true
@@ -328,14 +340,11 @@ class Canvas extends Event {
             return
         }
         if (this.activeShape && this.activeShape.editing) {
-            // if (this.activeShape.angle) {
-            //     this.activeShape.updateGraph(this.activeShape.editIndex, this.mouse.mousemovePos,)
-            // }
             this.activeShape.updateGraph(this.activeShape.editIndex, this.mouse.mousemovePos, this.mouse.mousedownPos)
             this.update()
             return
         }
-        if (this.activeShape && this.activeShape.canDrag && this.mouse.down && this.activeShape.activating) {
+        if (this.activeShape && this.activeShape.dragable && this.mouse.down && this.activeShape.activating) {
             this.dragShape(this.mouse.mousedownPos, this.mouse.mousemovePos)
             this.mouse.mousedownPos = this.mouse.mousemovePos
             this.update()
@@ -345,6 +354,10 @@ class Canvas extends Event {
             this.activeShape.editIndex = this.activeShape.controlPointsIndex(this.mouse.mousemovePos)
         }
         if (this.selectTool === 'select') {
+            if (this.showOnlyCurrent && this.activeShape) {
+                this.update()
+                return
+            }
             this.selectShape()
             return
         }
@@ -494,16 +507,35 @@ class Canvas extends Event {
                 item.y = item.y / this.img.naturalHeight * this.imgHeight
             })
             newShape = this.createShape(item.type, item)
-            this.shapeList.push(newShape)
+            this.addShape(newShape)
         })
         this.update()
     }
     deleteByIndex(index) {
+        if (isUnDef(index)) {
+            error('You need to provide a parameter, which is the subscript you want to delete, but I did not obtain it')
+            return
+        }
+        if (typeof index !== 'number') {
+            error('You need to provide a parameter of numerical type')
+            return
+        }
         this.shapeList.splice(index, 1)
+        this.activeShape = null
+        this.activeIndex = -1
+        this.emit('changed')
     }
     getResultData() {
         let regions = this.shapeList.map(item => {
             return item.getData()
+        })
+        regions = JSON.parse(JSON.stringify(regions))
+        // 标注数据要转换为图片真实的像素值
+        regions.forEach(item => {
+            item.coordinates.forEach(ite => {
+                ite.x = Math.round(ite.x / this.width * this.img.naturalWidth)
+                ite.y = Math.round(ite.y / this.imgHeight * this.img.naturalHeight)
+            })
         })
         return {
             pixelSize: this.pixelSize,

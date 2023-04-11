@@ -69,6 +69,43 @@ export default class Line extends Shape{
         }
         return false
     }
+    getMaxAndMinmun() {
+        let maxX = Math.max.apply(
+            null,
+            this.points.map((item) => item.x)
+        );
+        let maxY = Math.max.apply(
+            null,
+            this.points.map((item) => item.y)
+        );
+        let minX = Math.min.apply(
+            null,
+            this.points.map((item) => item.x)
+        );
+        let minY = Math.min.apply(
+            null,
+            this.points.map((item) => item.y)
+        );
+        return {
+            max: {
+                x: maxX,
+                y: maxY,
+            },
+            min: {
+                x: minX,
+                y: minY,
+            },
+        };
+    }
+    getShapeCenter() {
+        let pos = this.getMaxAndMinmun()
+        let centerPos = {
+            x: (pos.max.x + pos.min.x) / 2,
+            y: (pos.max.y + pos.min.y) / 2,
+        };
+        this.centerPos = centerPos;
+        return centerPos;
+    }
     updateGraph(index, pos) {
         this.points[index] = pos
     }

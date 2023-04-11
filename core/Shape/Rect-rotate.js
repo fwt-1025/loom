@@ -133,8 +133,9 @@ export default class RectRotate extends Shape {
         ctx.restore();
     }
     getArea() {
-        let { x, y } = this.points[0];
-        let { x: x1, y: y1 } = this.points[1];
+        let originPoints = this.getRotatePoints(this.centerPos, -this.angle)
+        let { x, y } = originPoints[0];
+        let { x: x1, y: y1 } = originPoints[2];
         return (x1 - x) * (y1 - y);
     }
     getMaxAndMinmun() {
